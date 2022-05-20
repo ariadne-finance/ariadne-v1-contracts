@@ -8,7 +8,7 @@
     "url": "https://github.com/ariadne-finance/ariadne-v1-contracts/issues"
   },
   "scripts": {
-    "docs": "hardhat docgen && hardhat afer-docgen"
+    "docs": "hardhat docgen && hardhat afer-docgen && (cd docs; zip ../export-to-gitbook.zip BFarmBase.md BFarmUniswapBase.md BFarmUniswap.md BFarmSushiswap.md BFarmSushiswapV2.md BFarmEllipsis.md BFarmBeets4.md Bridge.md ExtranetTokenQueued.md Farming.md)"
   },
   "dependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.5",
