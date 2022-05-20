@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 import "./BFarmBase.sol";
 
+// FIXME extract those into separate files
 interface IVault {
     function setRelayerApproval(
         address sender,
@@ -73,6 +74,12 @@ interface IMasterChef {
     function emergencyWithdraw(uint256 _pid, address _to) external;
     function harvest(uint256 _pid, address _to) external;
 }
+
+/**
+@notice Actual implementation of a Ariadne farm that has an underlying Beets weighted pool with four tokens.
+
+Please see `BFarmBase` docs.
+*/
 
 contract BFarmBeets4 is BFarmBase {
     using SafeERC20 for IERC20;

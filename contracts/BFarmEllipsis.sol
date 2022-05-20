@@ -11,6 +11,14 @@ import "./interfaces/IZapDepositer.sol";
 import "./interfaces/IStableSwapPool.sol";
 import "./interfaces/IEllipsisRewardsToken.sol";
 
+/**
+@notice Actual implementation of a Ariadne farm that has an underlying Ellipsis stable pool.
+
+Please see `BFarmBase` docs.
+
+Note: method `transferAndInvest()` has different arguments in this contract.
+*/
+
 contract BFarmEllipsis is BFarmBase {
     using SafeERC20 for IERC20;
 

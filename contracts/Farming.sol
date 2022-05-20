@@ -7,6 +7,16 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 uint256 constant ACC_INCENT_PRECISION = 1e12;
 
+/**
+@notice Farming contract for Ariadne `BFarm` tokens.
+
+This is a clone of SushiBar modified to emit reward in a different token than the one being staked.
+
+Despite being an ERC20 token it is not transferrable between addresses because of the `rewardDebt` structure.
+
+Also see `onIncent()` method which recalculates reward amounts on this contract after every incent token transfer.
+*/
+
 contract Farming is ERC20, Ownable {
     IERC20 public immutable baseToken;
     IERC20 public immutable rewardToken;
@@ -49,7 +59,11 @@ contract Farming is ERC20, Ownable {
         return uint256(accIncentPerShare * balanceOf(account) / ACC_INCENT_PRECISION) - rewardDebt[account];
     }
 
-    // this method is to be called every time incent token has been transferred to this contract
+    // FIXME replace with approval and .transferFrom() in a single transaction
+
+    /// @notice Admin method. It must be called after every transfer of `rewardToken` to this contract.
+    /// @param amount amount of `rewardToken` that has just been transferred
+    /// @dev only owner can call this.
     function onIncent(uint256 amount) public onlyOwner {
         require(amount > 0, "zero");
 
