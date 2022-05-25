@@ -286,6 +286,8 @@ contract ExtranetTokenQueued is ERC20, AccessControlEnumerable {
      * @notice Internal method implementing cancelation from investment queue.
      */
     function _cancelInvestmentForAccountAtIndex(address account, uint256 atIndex) internal {
+        require(pendingInvestmentAddressList[atIndex] == account, "wrong_account");
+
         uint256 amount = pendingInvestmentAmountByAddress[account];
         require(amount > 0, "empty");
 
@@ -340,6 +342,8 @@ contract ExtranetTokenQueued is ERC20, AccessControlEnumerable {
      * @notice Internal method implementing cancelation from withdrawal queue.
      */
     function _cancelWithdrawalForAccountAtIndex(address account, uint256 atIndex) internal {
+        require(pendingWithdrawalAddressList[atIndex] == account, "wrong_account");
+
         uint256 amount = pendingWithdrawalAmountByAddress[account];
         require(amount > 0, "empty");
 
