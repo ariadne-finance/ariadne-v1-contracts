@@ -389,7 +389,7 @@ contract ExtranetTokenQueued is ERC20, AccessControlEnumerable {
             uint256 quoteTokenAmount = pendingInvestmentAmountByAddress[account];
             uint256 extranetTokenAmount = quoteTokenAmount * oneTokenCost / DIVISION_PRECISION;
 
-            if (extranetTokenAmount == 0) { // is this possible for this to be zero?
+            if (extranetTokenAmount == 0) { // is this possible for this to be zero? FIXME: yes
                 delete pendingInvestmentAmountByAddress[account];
                 continue;
             }
