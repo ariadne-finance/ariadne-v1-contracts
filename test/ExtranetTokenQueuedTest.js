@@ -323,6 +323,27 @@ describe("ExtranetTokenQueued", function () {
     expect(queueInfo.withdrawalTotalAmount).to.be.eq(0);
   });
 
+  it('check for stuck entries in pendingInvestmentAddressList', async () => {
+    await quoteToken.mint(20000);
+    await extranetToken.invest(10000);
+    await extranetToken.invest(10000);
+
+    const pendingInvestmentAddressList = await extranetToken.getPendingInvestmentAddressList();
+    expect(pendingInvestmentAddressList.length).to.be.eq(1);
+    const index = pendingInvestmentAddressList.indexOf(myAccount.address);
+    expect(index).to.be.eq(0);
+
+    await extranetToken.connect(managerAccount).cancelInvestmentForAccountAtIndex(myAccount.address, index);
+
+    expect(await quoteToken.balanceOf(myAccount.address)).to.be.eq(20000);
+
+    const queueInfo = await extranetToken.queueInfo();
+    expect(queueInfo.investmentAddressListLength).to.be.eq(0);
+    expect(queueInfo.investmentTotalAmount).to.be.eq(0);
+    expect(queueInfo.withdrawalAddressListLength).to.be.eq(0);
+    expect(queueInfo.withdrawalTotalAmount).to.be.eq(0);
+  });
+
   it('should cancel top investments when paused', async () => {
     await expect(extranetToken.connect(managerAccount).cancelTopInvestments(1)).to.be.revertedWith('not_paused');
   });
