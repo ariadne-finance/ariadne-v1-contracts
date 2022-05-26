@@ -210,6 +210,7 @@ module.exports = {
   },
 
   docgen: {
-    pages: 'files'
+    pages: 'files',
+    runOnCompile: false // ignored by hardhat-dodoc anyway :-(
   }
 };
