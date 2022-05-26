@@ -29,16 +29,13 @@ describe('BFarmUniswap', function () {
       token0.address,
       token1.address,
       `Farm TEST/TEST`,
-      `aTEST`
+      `aTEST`,
+      managerAccount.address,
+      managerAccount.address,
+      traderAccount.address
     );
 
     await bFarmUniswap.deployed();
-
-    const TRADER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('TRADER_ROLE'));
-    const MANAGER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MANAGER_ROLE'));
-
-    await bFarmUniswap.grantRole(MANAGER_ROLE, managerAccount.address);
-    await bFarmUniswap.grantRole(TRADER_ROLE, traderAccount.address);
 
     await WETH.connect(traderAccount).approve(router.address, ethers.constants.MaxUint256);
 

@@ -33,7 +33,17 @@ contract BFarmEllipsis is BFarmBase {
         0x55d398326f99059fF775485246999027B3197955  // USDT
     ];
 
-    constructor() BFarmBase("ellipsis.finance Decentralized USD / 3EPS", "ALP") {
+    constructor(
+        address admin,
+        address manager,
+        address trader
+    ) BFarmBase(
+        "ellipsis.finance Decentralized USD / 3EPS",
+        "ALP",
+        admin,
+        manager,
+        trader
+    ) {
         IERC20(COIN[0]).approve(address(zapDepositer), 2**256-1);
         IERC20(COIN[1]).approve(address(zapDepositer), 2**256-1);
         IERC20(COIN[2]).approve(address(zapDepositer), 2**256-1);

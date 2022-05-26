@@ -31,18 +31,16 @@ describe('BFarmBeets4', function () {
       masterChef.address,
       masterChefPoolId,
       `Ariadne Late Quartet`,
-      `aLQ`
+      `aLQ`,
+      managerAccount.address,
+      managerAccount.address,
+      traderAccount.address
     );
 
     await bFarmBeets.deployed();
 
     console.log("Deployed");
 
-    const TRADER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('TRADER_ROLE'));
-    const MANAGER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MANAGER_ROLE'));
-
-    await bFarmBeets.grantRole(MANAGER_ROLE, managerAccount.address);
-    await bFarmBeets.grantRole(TRADER_ROLE, traderAccount.address);
     pool = new ethers.Contract(poolAddress, BeetsWeightedPoolAbi, ethers.provider);
 
     const vault = new ethers.Contract(await pool.getVault(), BeetsVaultAbi, ethers.provider);

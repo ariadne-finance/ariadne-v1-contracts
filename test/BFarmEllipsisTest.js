@@ -93,17 +93,15 @@ describe('BFarmEllipsis', function () {
     [ deployerAccount, traderAccount, managerAccount ] = await hre.ethers.getSigners();
 
     const BFarmEllipsis = await ethers.getContractFactory('BFarmEllipsis');
-    bFarmEllipsis = await BFarmEllipsis.deploy();
+    bFarmEllipsis = await BFarmEllipsis.deploy(
+      managerAccount.address,
+      managerAccount.address,
+      traderAccount.address
+    );
 
     await bFarmEllipsis.deployed();
 
     console.log("Deployed");
-
-    const TRADER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('TRADER_ROLE'));
-    const MANAGER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MANAGER_ROLE'));
-
-    await bFarmEllipsis.grantRole(MANAGER_ROLE, managerAccount.address);
-    await bFarmEllipsis.grantRole(TRADER_ROLE, traderAccount.address);
 
     const usdtAddress = await bFarmEllipsis.COIN(3);
     usdt = await ethers.getContractAt('ERC20', usdtAddress);

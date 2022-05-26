@@ -97,10 +97,16 @@ contract BFarmBeets4 is BFarmBase {
         address _masterChef,
         uint256 _masterChefPoolId,
         string memory name,
-        string memory symbol
+        string memory symbol,
+        address admin,
+        address manager,
+        address trader
     ) BFarmBase(
         name,
-        symbol
+        symbol,
+        admin,
+        manager,
+        trader
     ) {
         weightedPool = IWeightedPool(_weightedPool);
 

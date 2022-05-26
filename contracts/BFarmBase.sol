@@ -37,16 +37,23 @@ abstract contract BFarmBase is ERC20, AccessControlEnumerable {
      * @notice Neither the name or the symbol are used anywhere on the web.
      * @param name ERC20 name
      * @param symbol ERC20 symbol
+     * @param admin DEFAULT_ADMIN_ROLE address
+     * @param manager MANAGER_ROLE address
+     * @param trader TRADER_ROLE address
      */
     constructor(
         string memory name,
-        string memory symbol
+        string memory symbol,
+        address admin,
+        address manager,
+        address trader
     ) ERC20(
         name,
         symbol
     ) {
-        // Roles are to be properly assigned after deployment.
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _setupRole(DEFAULT_ADMIN_ROLE, admin);
+        _setupRole(MANAGER_ROLE, manager);
+        _setupRole(TRADER_ROLE, trader);
     }
 
     modifier whenNotPaused {

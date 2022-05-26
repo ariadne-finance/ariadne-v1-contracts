@@ -104,21 +104,18 @@ describe(isV2 ? 'BFarmSushiswapV2' : 'BFarmSushiswap', function () {
       router.address,
       token0.address,
       token1.address,
+      masterChef.address,
+      poolId,
       `Farm TEST/TEST`,
       `aTEST`,
-      masterChef.address,
-      poolId
+      managerAccount.address,
+      managerAccount.address,
+      traderAccount.address
     );
 
     await bFarmSushiswap.deployed();
 
     debug("Deployed");
-
-    const TRADER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('TRADER_ROLE'));
-    const MANAGER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MANAGER_ROLE'));
-
-    await bFarmSushiswap.grantRole(MANAGER_ROLE, managerAccount.address);
-    await bFarmSushiswap.grantRole(TRADER_ROLE, traderAccount.address);
 
     await WETH.connect(traderAccount).approve(router.address, ethers.constants.MaxUint256);
 

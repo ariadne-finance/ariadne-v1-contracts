@@ -23,17 +23,23 @@ contract BFarmSushiswap is BFarmUniswapBase {
         address routerAddress,
         address token0Address,
         address token1Address,
+        address masterChefAddress,
+        uint256 _poolId,
+
         string memory name,
         string memory symbol,
-
-        address masterChefAddress,
-        uint256 _poolId
+        address admin,
+        address manager,
+        address trader
     ) BFarmUniswapBase(
         routerAddress,
         token0Address,
         token1Address,
         name,
-        symbol
+        symbol,
+        admin,
+        manager,
+        trader
     ) {
         masterChef = ISushiswapMasterChef(masterChefAddress);
         poolId = _poolId;

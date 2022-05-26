@@ -14,13 +14,19 @@ contract BFarmUniswap is BFarmUniswapBase {
         address token0Address,
         address token1Address,
         string memory name,
-        string memory symbol
+        string memory symbol,
+        address admin,
+        address manager,
+        address trader
     ) BFarmUniswapBase(
         routerAddress,
         token0Address,
         token1Address,
         name,
-        symbol
+        symbol,
+        admin,
+        manager,
+        trader
     ) {}
 
     function addLiquidity() public override onlyRole(TRADER_ROLE) returns (uint256) {

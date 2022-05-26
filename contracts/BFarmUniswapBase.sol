@@ -35,15 +35,24 @@ abstract contract BFarmUniswapBase is BFarmBase {
     /// @param token1Address uniswap pair token1 address
     /// @param name BFarm ERC20 name
     /// @param symbol BFarm ERC20 symbol
+    /// @param admin DEFAULT_ADMIN_ROLE address
+    /// @param manager MANAGER_ROLE address
+    /// @param trader TRADER_ROLE address
     constructor(
         address routerAddress,
         address token0Address,
         address token1Address,
         string memory name,
-        string memory symbol
+        string memory symbol,
+        address admin,
+        address manager,
+        address trader
     ) BFarmBase(
         name,
-        symbol
+        symbol,
+        admin,
+        manager,
+        trader
     ) {
         router = routerAddress;
 
