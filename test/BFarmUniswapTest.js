@@ -1,6 +1,6 @@
 const chai = require('chai');
 const { solidity } = require('ethereum-waffle');
-const { parseAddressFromEnv, swapOneETHForEachToken, wrapFiveETH, getEverything } = require('../utils/BFarmUtils.js');
+const { parseAddressFromEnv } = require('../utils/BFarmUtils.js');
 const EthereumMatchers = require('./utilities/EthereumMatchers.js');
 
 chai.use(solidity);
@@ -8,19 +8,44 @@ chai.use(EthereumMatchers);
 
 const expect = chai.expect;
 
-const tokenAAddress = parseAddressFromEnv(process.env.TOKENA, 'token A');
-const tokenBAddress = parseAddressFromEnv(process.env.TOKENB, 'token B');
 const routerAddress = parseAddressFromEnv(process.env.ROUTER, 'router');
 
 describe('BFarmUniswap', function () {
   let bFarmUniswap;
   let traderAccount, managerAccount;
-  let router, token0, token1, WETH;
+  let router, token0, token1;
 
   before(async () => {
     [ deployerAccount, traderAccount, managerAccount ] = await hre.ethers.getSigners();
 
-    ({ router, token0, token1, WETH } = await getEverything({ routerAddress, tokenAAddress, tokenBAddress }));
+    router = await ethers.getContractAt('IUniswapV2Router02', routerAddress);
+    const factory = await ethers.getContractAt('IUniswapV2Factory', await router.factory());
+
+    const TestTokenFactory = await ethers.getContractFactory('TestToken');
+
+    const tokenA = await TestTokenFactory.deploy('T0', 6);
+    await tokenA.deployed();
+
+    const tokenB = await TestTokenFactory.deploy('T1', 6);
+    await tokenB.deployed();
+
+    await factory.createPair(tokenA.address, tokenB.address);
+    const pairAddress = await factory.getPair(tokenA.address, tokenB.address);
+    const pair = await ethers.getContractAt('IUniswapV2Pair', pairAddress);
+
+    token0 = await ethers.getContractAt('TestToken', await pair.token0());
+    token1 = await ethers.getContractAt('TestToken', await pair.token1());
+
+    await token0.connect(traderAccount).approve(router.address, ethers.constants.MaxUint256);
+    await token1.connect(traderAccount).approve(router.address, ethers.constants.MaxUint256);
+
+    const amount = 3000;
+    await token0.connect(traderAccount).mint(amount);
+    await token1.connect(traderAccount).mint(amount * 2);
+
+    const random = ethers.Wallet.createRandom();
+
+    await router.connect(traderAccount).addLiquidity(token0.address, token1.address, amount, amount * 2, amount, amount * 2, random.address, Math.floor(Date.now() / 1000 + 86400));
 
     const BFarmUniswap = await ethers.getContractFactory('BFarmUniswap');
 
@@ -37,14 +62,8 @@ describe('BFarmUniswap', function () {
 
     await bFarmUniswap.deployed();
 
-    await WETH.connect(traderAccount).approve(router.address, ethers.constants.MaxUint256);
-
     await token0.connect(traderAccount).approve(bFarmUniswap.address, ethers.constants.MaxUint256);
     await token1.connect(traderAccount).approve(bFarmUniswap.address, ethers.constants.MaxUint256);
-
-    await wrapFiveETH({ WETH, account: traderAccount });
-
-    await swapOneETHForEachToken({ WETH, token0, token1, router, account: traderAccount });
 
     await takeSnapshot();
   });
@@ -55,123 +74,84 @@ describe('BFarmUniswap', function () {
   });
 
   it('should invest and withdraw', async () => {
-    await token1.connect(traderAccount).transfer(bFarmUniswap.address, await token1.balanceOf(traderAccount.address));
-    await token0.connect(traderAccount).transfer(bFarmUniswap.address, await token0.balanceOf(traderAccount.address));
+    await token0.connect(traderAccount).mint(1000);
+    await token1.connect(traderAccount).mint(2000);
 
-    expect(await bFarmUniswap.lpBalance()).to.be.eq(0);
-
-    let contractBalancesBefore = await chai.util.snapshotBalances(bFarmUniswap.address, [ token0, token1 ]);
-
-    await bFarmUniswap.connect(traderAccount).invest();
-
-    let contractBalancesAfter = await chai.util.snapshotBalances(bFarmUniswap.address, [ token0, token1 ]);
-
-    expect(contractBalancesBefore).balancesDecreased(contractBalancesAfter);
-    expect(contractBalancesAfter).balancesOneIsZero;
-
-    expect(await bFarmUniswap.lpBalance()).to.be.gt(0);
+    await bFarmUniswap.connect(traderAccount).transferAndInvest(1000, 2000);
 
     expect(await token0.balanceOf(traderAccount.address)).to.be.eq(0);
     expect(await token1.balanceOf(traderAccount.address)).to.be.eq(0);
 
-    let lpTokenBalance = await bFarmUniswap.balanceOf(traderAccount.address);
-    expect(lpTokenBalance).to.be.gt(0);
+    let bFarmTraderBalance = await bFarmUniswap.balanceOf(traderAccount.address);
+    expect(bFarmTraderBalance).to.be.gt(0);
 
-    await bFarmUniswap.connect(managerAccount).setSlippagePercentMultiplier(9990);
+    expect(await bFarmUniswap.lpBalance()).to.be.gt(0);
+    expect(await bFarmUniswap.totalSupply()).to.be.gt(0);
 
-    contractBalancesBefore = await chai.util.snapshotBalances(bFarmUniswap.address, [ token0, token1 ]);
+    await bFarmUniswap.connect(traderAccount).withdrawAndCollect(bFarmTraderBalance.div(2));
 
-    await bFarmUniswap.connect(traderAccount).withdraw(lpTokenBalance.div(2));
-
-    contractBalancesAfter = await chai.util.snapshotBalances(bFarmUniswap.address, [ token0, token1 ]);
-    expect(contractBalancesBefore).balancesIncreased(contractBalancesAfter);
-
-    const traderAccountBalances = await chai.util.snapshotBalances(traderAccount.address, [ token0, token1 ]);
-    expect(traderAccountBalances).balancesAllAreZero;
+    expect(await token0.balanceOf(traderAccount.address)).to.be.eq(500);
+    expect(await token1.balanceOf(traderAccount.address)).to.be.eq(1000);
 
     let lpTokenBalance2 = await bFarmUniswap.balanceOf(traderAccount.address);
+    expect(lpTokenBalance2).to.be.eq(bFarmTraderBalance.div(2));
 
-    expect(lpTokenBalance2).to.be.within(lpTokenBalance.div(2).sub(1), lpTokenBalance.div(2).add(1));
-
-    await bFarmUniswap.connect(managerAccount).setSlippagePercentMultiplier(9990);
     await bFarmUniswap.connect(traderAccount).withdraw(await bFarmUniswap.balanceOf(traderAccount.address));
 
     expect(await bFarmUniswap.balanceOf(traderAccount.address)).to.be.eq(0);
   });
 
   it('should collect tokens', async () => {
-    const balanceToken0Before = await token0.balanceOf(traderAccount.address);
-    const balanceToken1Before = await token1.balanceOf(traderAccount.address);
+    await token0.connect(traderAccount).mint(1000);
+    await token1.connect(traderAccount).mint(2000);
 
-    await token0.connect(traderAccount).transfer(bFarmUniswap.address, balanceToken0Before);
-    await token1.connect(traderAccount).transfer(bFarmUniswap.address, balanceToken1Before);
-
-    await bFarmUniswap.connect(traderAccount).invest();
-
-    const traderAccountBalances = await chai.util.snapshotBalances(traderAccount.address, [ token0, token1 ]);
-    expect(traderAccountBalances).balancesAllAreZero;
-
-    await bFarmUniswap.connect(managerAccount).setSlippagePercentMultiplier(9990);
-
-    const lpTokenBalance = await bFarmUniswap.balanceOf(traderAccount.address);
-    await bFarmUniswap.connect(traderAccount).withdraw(lpTokenBalance);
+    await token0.connect(traderAccount).transfer(bFarmUniswap.address, 1000);
+    await token1.connect(traderAccount).transfer(bFarmUniswap.address, 2000);
 
     await bFarmUniswap.connect(traderAccount).collectTokens([ token0.address, token1.address ], traderAccount.address);
 
-    expect(await token0.balanceOf(traderAccount.address)).to.be.within(balanceToken0Before.mul(100).div(102), balanceToken0Before.mul(100).div(98));
-    expect(await token1.balanceOf(traderAccount.address)).to.be.within(balanceToken1Before.mul(100).div(102), balanceToken1Before.mul(100).div(98));
+    expect(await token0.balanceOf(traderAccount.address)).to.be.eq(1000);
+    expect(await token1.balanceOf(traderAccount.address)).to.be.eq(2000);
   });
 
-  it('should support addLiquidity and properly collect', async () => {
-    // await bFarmUniswap.connect(managerAccount).setSlippagePercentMultiplier(9990);
+  it('should support addLiquidity and properly calculate token0/token1 amounts', async () => {
+    await token0.connect(traderAccount).mint(1000);
+    await token1.connect(traderAccount).mint(2000);
 
-    const token0HalfAmount = (await token0.balanceOf(traderAccount.address)).div(2).sub(1);
-    const token1HalfAmount = (await token1.balanceOf(traderAccount.address)).div(2).sub(1);
-
-    await bFarmUniswap.connect(traderAccount).transferAndInvest(token0HalfAmount, token1HalfAmount);
-
-    expect(await token0.balanceOf(traderAccount.address)).to.be.closeTo(token0HalfAmount, 4);
-    expect(await token1.balanceOf(traderAccount.address)).to.be.closeTo(token1HalfAmount, 4);
+    await bFarmUniswap.connect(traderAccount).transferAndInvest(1000, 2000);
 
     const totalSupplyAfterInvest = await bFarmUniswap.totalSupply();
     expect(totalSupplyAfterInvest).to.be.gt(0);
 
-    const bFarmBalanceAfterInvest = await bFarmUniswap.lpBalance();
-    expect(bFarmBalanceAfterInvest).to.be.gt(0);
-
     const traderBFarmBalanceAfterInvest = await bFarmUniswap.balanceOf(traderAccount.address);
-    expect(traderBFarmBalanceAfterInvest).to.be.gt(0);
+    expect(traderBFarmBalanceAfterInvest).to.be.eq(totalSupplyAfterInvest);
 
-    await token0.connect(traderAccount).transfer(bFarmUniswap.address, token0HalfAmount);
-    await token1.connect(traderAccount).transfer(bFarmUniswap.address, token1HalfAmount);
+    const lpBalanceAfterInvest = await bFarmUniswap.lpBalance();
+    expect(lpBalanceAfterInvest).to.be.gt(0);
 
-    expect(await token0.balanceOf(traderAccount.address)).to.be.lte(4);
-    expect(await token1.balanceOf(traderAccount.address)).to.be.lte(4);
+    await token0.connect(traderAccount).mintTo(bFarmUniswap.address, 1000);
+    await token1.connect(traderAccount).mintTo(bFarmUniswap.address, 2000);
 
     await bFarmUniswap.connect(traderAccount).addLiquidity();
 
-    // burn
-    await bFarmUniswap.connect(traderAccount).collectTokens([ token0.address, token1.address ], ethers.constants.AddressZero);
-    expect(await token0.balanceOf(bFarmUniswap.address)).to.be.eq(0);
-    expect(await token1.balanceOf(bFarmUniswap.address)).to.be.eq(0);
+    // neither totalSupply nor my balance have changed
+    const totalSupplyAfterAddLiquidity = await bFarmUniswap.totalSupply();
+    expect(totalSupplyAfterAddLiquidity).to.be.eq(totalSupplyAfterInvest);
 
-    expect(await bFarmUniswap.totalSupply()).to.be.eq(totalSupplyAfterInvest);
-    expect(await bFarmUniswap.balanceOf(traderAccount.address)).to.be.eq(traderBFarmBalanceAfterInvest);
-    expect(await bFarmUniswap.lpBalance()).to.be.closeTo(bFarmBalanceAfterInvest.mul(2), 4);
+    const lpBalanceAfterAddLiquidity = await bFarmUniswap.lpBalance();
+    expect(lpBalanceAfterAddLiquidity).to.be.closeTo(lpBalanceAfterInvest.mul(2), 4);
 
     await bFarmUniswap.connect(traderAccount).withdrawAndCollect(traderBFarmBalanceAfterInvest.div(3));
 
-    expect(await bFarmUniswap.lpBalance()).to.be.closeTo(bFarmBalanceAfterInvest.mul(2).div(3).mul(2), 9);
-    expect(await bFarmUniswap.totalSupply()).to.be.closeTo(totalSupplyAfterInvest.div(3).mul(2), 9);
-
     const traderBFarmBalanceAfterOneThirdWithdrawn = await bFarmUniswap.balanceOf(traderAccount.address);
+
+    // 2/3 left, 1/3 withdrawn; div(3).mul(2) == 2/3
     expect(traderBFarmBalanceAfterOneThirdWithdrawn).to.be.closeTo(traderBFarmBalanceAfterInvest.div(3).mul(2), 9);
+    expect(await bFarmUniswap.lpBalance()).to.be.closeTo(lpBalanceAfterAddLiquidity.div(3).mul(2), 9);
+    expect(await bFarmUniswap.totalSupply()).to.be.closeTo(totalSupplyAfterAddLiquidity.div(3).mul(2), 9);
 
-    const token0BalanceAfterOneThirdWithdrawn = await token0.balanceOf(traderAccount.address);
-    expect(token0BalanceAfterOneThirdWithdrawn).to.gt(4);
-
-    const token1BalanceAfterOneThirdWithdrawn = await token1.balanceOf(traderAccount.address);
-    expect(token1BalanceAfterOneThirdWithdrawn).to.gt(4);
+    expect(await token0.balanceOf(traderAccount.address)).to.be.eq(666);
+    expect(await token1.balanceOf(traderAccount.address)).to.be.eq(1332)
 
     await bFarmUniswap.connect(traderAccount).withdrawAndCollect(traderBFarmBalanceAfterOneThirdWithdrawn);
 
@@ -179,8 +159,8 @@ describe('BFarmUniswap', function () {
     expect(await bFarmUniswap.totalSupply()).to.be.eq(0);
     expect(await bFarmUniswap.balanceOf(traderAccount.address)).to.be.eq(0);
 
-    expect(await token0.balanceOf(traderAccount.address)).to.be.closeTo(token0BalanceAfterOneThirdWithdrawn.mul(3), 10000000);
-    expect(await token1.balanceOf(traderAccount.address)).to.be.closeTo(token1BalanceAfterOneThirdWithdrawn.mul(3), 10000000);
+    expect(await token0.balanceOf(traderAccount.address)).to.be.eq(1999);
+    expect(await token1.balanceOf(traderAccount.address)).to.be.eq(3999);
   });
 
   it('should disallow admin methods by stranger and by trader', async () => {
