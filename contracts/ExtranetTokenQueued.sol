@@ -98,11 +98,31 @@ contract ExtranetTokenQueued is ERC20, AccessControlEnumerable {
     /// @notice Emmited on new withdrawal, signaling that queue is non-empty.
     event PendingWithdrawal(address account, uint256 extranetTokenAmount, uint256 pendingWithdrawalAddressListLength, uint256 pendingWithdrawalTotalAmount);
 
-    /// @notice Name and symbol are not really shown anywhere.
-    /// @param quoteTokenAddress address of USDT on extranet
-    /// @param _bridgeAddress address of the Bridge on homenet
-    /// @param _bridgeChainId chainId of homenet
-    constructor(string memory name, string memory symbol, uint8 aFarmDecimals, address quoteTokenAddress, address _bridgeAddress, uint256 _bridgeChainId) ERC20(name, symbol) {
+    /**
+     * @notice Name and symbol are not really shown anywhere.
+     * @param aFarmDecimals decimals() of the underlying BFarm
+     * @param quoteTokenAddress USDT address
+     * @param _bridgeAddress Address of the Bridge contract on homenet
+     * @param _bridgeChainId chainId of the homenet where Bridge is deployed
+     * @param name ERC20 name
+     * @param symbol ERC20 symbol
+     * @param admin DEFAULT_ADMIN_ROLE address
+     * @param manager MANAGER_ROLE address
+     * @param trader TRADER_ROLE address
+    */
+    constructor(
+        uint8 aFarmDecimals,
+        address quoteTokenAddress,
+        address _bridgeAddress,
+        uint256 _bridgeChainId,
+
+        string memory name,
+        string memory symbol,
+
+        address admin,
+        address manager,
+        address trader
+    ) ERC20(name, symbol) {
         quoteToken = quoteTokenAddress;
         bridgeAddress = _bridgeAddress;
         bridgeChainId = _bridgeChainId;
@@ -114,7 +134,9 @@ contract ExtranetTokenQueued is ERC20, AccessControlEnumerable {
 
         feeTo = msg.sender;
 
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _setupRole(DEFAULT_ADMIN_ROLE, admin);
+        _setupRole(MANAGER_ROLE, manager);
+        _setupRole(TRADER_ROLE, trader);
     }
 
     /// @notice Extranet token always has the same `decimals()` as the underlying farm LP token on homenet.

@@ -24,20 +24,17 @@ describe("ExtranetTokenQueued", function () {
 
     const ExtranetToken = await ethers.getContractFactory('ExtranetTokenQueued');
     extranetToken = await ExtranetToken.deploy(
-      "Extranet something/something",
-      "arSMTH",
       18,
       quoteToken.address,
       ethers.constants.AddressZero,
-      0
+      0,
+      "Extranet something/something",
+      "arSMTH",
+      managerAccount.address,
+      managerAccount.address,
+      traderAccount.address
     );
     await extranetToken.deployed();
-
-    const TRADER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('TRADER_ROLE'));
-    const MANAGER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MANAGER_ROLE'));
-
-    await extranetToken.grantRole(MANAGER_ROLE, managerAccount.address);
-    await extranetToken.grantRole(TRADER_ROLE, traderAccount.address);
 
     await quoteToken.connect(myAccount).approve(extranetToken.address, ethers.constants.MaxUint256);
 

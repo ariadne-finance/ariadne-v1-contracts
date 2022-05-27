@@ -17,17 +17,15 @@ describe("Bridge", function () {
     await bFarmToken.deployed();
 
     const Bridge = await ethers.getContractFactory('Bridge');
-    bridge = await Bridge.deploy(0x03, bFarmToken.address);
+    bridge = await Bridge.deploy(
+      0x03,
+      bFarmToken.address,
+      managerAccount.address,
+      managerAccount.address,
+      traderAccount.address
+    );
 
     await bridge.deployed();
-
-
-    const TRADER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('TRADER_ROLE'));
-    const MANAGER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MANAGER_ROLE'));
-
-
-    await bridge.grantRole(MANAGER_ROLE, managerAccount.address);
-    await bridge.grantRole(TRADER_ROLE, traderAccount.address);
 
     await bFarmToken.connect(traderAccount).mint(100);
     await bFarmToken.connect(traderAccount).approve(bridge.address, 10000);

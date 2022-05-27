@@ -37,14 +37,29 @@ contract Bridge is AccessControlEnumerable {
     /// @notice Emitted on `lock()`.
     event BridgeLock(uint256 amount);
 
-    constructor(uint256 _extranetChainId, address _farmAddress) {
+    /**
+     * @param _extranetChainId Which chainId this Bridge is for
+     * @param _farmAddress Which BFarm this Bridge is for
+     * @param admin DEFAULT_ADMIN_ROLE address
+     * @param manager MANAGER_ROLE address
+     * @param trader TRADER_ROLE address
+     */
+    constructor(
+        uint256 _extranetChainId,
+        address _farmAddress,
+        address admin,
+        address manager,
+        address trader
+    ) {
         extranetChainId = _extranetChainId;
         farmAddress = IERC20(_farmAddress);
 
         unlockedTransactionsPos = 0;
         unlockedTransactions = new bytes32[](UNLOCKED_TRANSACTIONS_RING_SIZE);
 
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _setupRole(DEFAULT_ADMIN_ROLE, admin);
+        _setupRole(MANAGER_ROLE, manager);
+        _setupRole(TRADER_ROLE, trader);
     }
 
     /// @notice Total BFarm amount locked on this bridge.
