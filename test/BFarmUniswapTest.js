@@ -122,24 +122,6 @@ describe('BFarmUniswap', function () {
     expect(await token1.balanceOf(traderAccount.address)).to.be.within(balanceToken1Before.mul(100).div(102), balanceToken1Before.mul(100).div(98));
   });
 
-  it('should disallow admin methods by stranger and by trader', async () => {
-    await Promise.all([
-      expect(bFarmUniswap.setDeadlineSeconds(123)).to.be.revertedWith('is missing role'),
-      expect(bFarmUniswap.setSlippagePercentMultiplier(23)).to.be.revertedWith('is missing role'),
-      expect(bFarmUniswap.pause()).to.be.revertedWith('is missing role'),
-      expect(bFarmUniswap.unpause()).to.be.revertedWith('is missing role'),
-    ]);
-
-    const bFarmUniswapAsTrader = bFarmUniswap.connect(traderAccount);
-
-    await Promise.all([
-      expect(bFarmUniswapAsTrader.setDeadlineSeconds(123)).to.be.revertedWith('is missing role'),
-      expect(bFarmUniswapAsTrader.setSlippagePercentMultiplier(23)).to.be.revertedWith('is missing role'),
-      expect(bFarmUniswapAsTrader.pause()).to.be.revertedWith('is missing role'),
-      expect(bFarmUniswapAsTrader.unpause()).to.be.revertedWith('is missing role'),
-    ]);
-  });
-
   it('should support addLiquidity and properly collect', async () => {
     // await bFarmUniswap.connect(managerAccount).setSlippagePercentMultiplier(9990);
 
@@ -199,6 +181,24 @@ describe('BFarmUniswap', function () {
 
     expect(await token0.balanceOf(traderAccount.address)).to.be.closeTo(token0BalanceAfterOneThirdWithdrawn.mul(3), 10000000);
     expect(await token1.balanceOf(traderAccount.address)).to.be.closeTo(token1BalanceAfterOneThirdWithdrawn.mul(3), 10000000);
+  });
+
+  it('should disallow admin methods by stranger and by trader', async () => {
+    await Promise.all([
+      expect(bFarmUniswap.setDeadlineSeconds(123)).to.be.revertedWith('is missing role'),
+      expect(bFarmUniswap.setSlippagePercentMultiplier(23)).to.be.revertedWith('is missing role'),
+      expect(bFarmUniswap.pause()).to.be.revertedWith('is missing role'),
+      expect(bFarmUniswap.unpause()).to.be.revertedWith('is missing role'),
+    ]);
+
+    const bFarmUniswapAsTrader = bFarmUniswap.connect(traderAccount);
+
+    await Promise.all([
+      expect(bFarmUniswapAsTrader.setDeadlineSeconds(123)).to.be.revertedWith('is missing role'),
+      expect(bFarmUniswapAsTrader.setSlippagePercentMultiplier(23)).to.be.revertedWith('is missing role'),
+      expect(bFarmUniswapAsTrader.pause()).to.be.revertedWith('is missing role'),
+      expect(bFarmUniswapAsTrader.unpause()).to.be.revertedWith('is missing role'),
+    ]);
   });
 
   const MISSING_ROLE_REASON = 'is missing role';
