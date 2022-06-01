@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 module.exports = hre => {
-  for (const contractName of 'ExtranetTokenQueued BFarmBase BFarmUniswap BFarmSushiswapV2 BFarmSushiswap BFarmEllipsis ERC20 Bridge Farming'.split(' ')) {
+  for (const contractName of 'ExtranetTokenQueued BFarmBase BFarmUniswap BFarmSushiswapV2 BFarmSushiswap BFarmEllipsis BFarmTriStableSwap ERC20 Bridge Farming'.split(' ')) {
     hre[contractName] = async address => {
       return await ethers.getContractAt(contractName, address);
     };
