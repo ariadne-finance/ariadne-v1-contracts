@@ -168,7 +168,7 @@ describe(isV2 ? 'BFarmSushiswapV2' : 'BFarmSushiswap', function () {
     const rewardBalancesAfter = await getRewardBalances(traderAccount.address);
 
     for (let i=0; i<rewardTokenContracts.length; i++) {
-      expect(rewardBalancesBefore[i]).to.be.lt(rewardBalancesAfter[i]);
+      expect(rewardBalancesAfter[i]).to.be.gt(rewardBalancesBefore[i]);
     }
   });
 
