@@ -14,7 +14,7 @@ contract HelperAuroraTrisolarisUsdtUsdc is Ownable {
     IERC20 public tri = IERC20(0xFa94348467f64D5A457F75F8bc40495D33c65aBB);
     BFarmSushiswap public immutable bFarm;
 
-    event Harvest(uint256 liquidityAdded, uint256 usdtHarvestedAmount);
+    event Harvest(uint256 liquidityAdded, uint256 usdtHarvestedAmount, uint256 usdtRewardAmount);
 
     constructor(address payable _bFarm) {
         bFarm = BFarmSushiswap(_bFarm);
@@ -69,7 +69,7 @@ contract HelperAuroraTrisolarisUsdtUsdc is Ownable {
 
         uint256 triBalanceCollected = collectTri();
         if (triBalanceCollected == 0) {
-            emit Harvest(0, 0);
+            emit Harvest(0, 0, 0);
             return;
         }
 
@@ -86,7 +86,7 @@ contract HelperAuroraTrisolarisUsdtUsdc is Ownable {
 
         uint256 usdtAmountTotal = usdtHarvestedAmount + usdtRewardAmount;
         if (usdtAmountTotal <= 2) {
-            emit Harvest(0, 0);
+            emit Harvest(0, 0, 0);
             return;
         }
 
@@ -101,6 +101,6 @@ contract HelperAuroraTrisolarisUsdtUsdc is Ownable {
 
         bFarm.stakeTokens();
 
-        emit Harvest(liquidityAdded, usdtHarvestedAmount);
+        emit Harvest(liquidityAdded, usdtHarvestedAmount, usdtRewardAmount);
     }
 }
