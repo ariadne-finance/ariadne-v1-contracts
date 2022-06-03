@@ -9,6 +9,18 @@ describe('BFarmTriStableSwap', function () {
   let bFarmTriStableSwap;
   let traderAccount, managerAccount;
   let usdt;
+  let rewardTokenContracts = [];
+  let masterChef;
+
+  async function getRewardBalances(account) {
+    const balances = [];
+    for (const contract of rewardTokenContracts) {
+      const balance = await contract.balanceOf(account);
+      balances.push(balance);
+    }
+
+    return balances;
+  }
 
   before(async () => {
     let deployerAccount;
@@ -31,6 +43,20 @@ describe('BFarmTriStableSwap', function () {
       const address = await bFarmTriStableSwap.getToken(i);
       const contract = await ethers.getContractAt('ERC20', address);
       await contract.connect(traderAccount).approve(bFarmTriStableSwap.address, 2n**256n-1n);
+    }
+
+    masterChef = await ethers.getContractAt('ISushiswapMasterChefV2', '0x3838956710bcc9D122Dd23863a0549ca8D5675D6');
+
+    const rewarderContract = await ethers.getContractAt('IRewarder', await masterChef.rewarder(28));
+
+    const pendingTokensResult = await rewarderContract.pendingTokens(28, ethers.constants.AddressZero, 1);
+    const rewardTokenAddresses = pendingTokensResult[0];
+
+    rewardTokenContracts.push(await ethers.getContractAt('ERC20', '0xFa94348467f64D5A457F75F8bc40495D33c65aBB')); // TRI
+
+    for (const rewardTokenAddress of rewardTokenAddresses) {
+      const contract = await ethers.getContractAt('ERC20', rewardTokenAddress);
+      rewardTokenContracts.push(contract);
     }
 
     const router = await ethers.getContractAt('IUniswapV2Router02', '0x2CB45Edb4517d5947aFdE3BEAbF95A582506858B');
@@ -81,5 +107,31 @@ describe('BFarmTriStableSwap', function () {
 
     const usdtBalanceAfterWithdraw = await usdt.balanceOf(traderAccount.address);
     expect(usdtBalanceAfterWithdraw.sub(usdtBalanceAfterInvest)).to.be.closeTo(usdtAmount, usdtAmount.div(100));
+  });
+
+  it('should harvest', async () => {
+    const usdtAmount = ethers.utils.parseUnits('10', 6);
+
+    await bFarmTriStableSwap.connect(traderAccount).transferAndInvest([0, usdtAmount, 0]);
+
+    for (let i = 0; i < 30; i++) {
+      await advanceTimeAndBlock(1); // we only need to mine blocks, not time
+    }
+
+    const rewardBalancesBefore = await getRewardBalances(traderAccount.address);
+
+    for (let i=0; i<rewardTokenContracts.length; i++) {
+      expect(rewardBalancesBefore[i]).to.be.eq(0);
+    }
+
+    await bFarmTriStableSwap.connect(traderAccount).harvest();
+
+    await bFarmTriStableSwap.connect(traderAccount).collectTokens(rewardTokenContracts.map(c => c.address), traderAccount.address);
+
+    const rewardBalancesAfter = await getRewardBalances(traderAccount.address);
+
+    for (let i=0; i<rewardTokenContracts.length; i++) {
+      expect(rewardBalancesAfter[i]).to.be.gt(rewardBalancesBefore[i]);
+    }
   });
 });

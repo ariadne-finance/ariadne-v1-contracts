@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 
 import "./BFarmBase.sol";
 import "./interfaces/ITrisolarisSwap.sol";
+import "./interfaces/ISushiswapMasterChefV2.sol";
 
 /**
 @notice Actual implementation of a Ariadne farm that has an underlying Trisolaris StableSwap pool
@@ -27,6 +28,9 @@ contract BFarmTriStableSwap is BFarmBase {
     ITrisolarisSwap public swap = ITrisolarisSwap(0x458459E48dbAC0C8Ca83F8D0b7b29FEfE60c3970);
     IERC20 public lpToken = IERC20(0x87BCC091d0A7F9352728100268Ac8D25729113bB);
 
+    ISushiswapMasterChefV2 public masterChef = ISushiswapMasterChefV2(0x3838956710bcc9D122Dd23863a0549ca8D5675D6);
+    uint256 public poolId = 28;
+
     constructor(
         address admin,
         address manager,
@@ -43,16 +47,21 @@ contract BFarmTriStableSwap is BFarmBase {
         }
 
         lpToken.approve(address(swap), 2**256-1);
+        lpToken.approve(address(masterChef), 2**256-1);
 
         _decimals = IERC20Metadata(address(lpToken)).decimals();
     }
 
     function lpBalance() public view override returns (uint256) {
-        return lpToken.balanceOf(address(this));
+        (uint256 amount, ) = masterChef.userInfo(poolId, address(this));
+        return amount;
     }
 
     function invest() public onlyRole(TRADER_ROLE) whenNotPaused override {
         uint256 liquidityAdded = addLiquidity();
+
+        stakeTokens();
+
         _mint(msg.sender, liquidityAdded);
     }
 
@@ -87,16 +96,35 @@ contract BFarmTriStableSwap is BFarmBase {
         swap.removeLiquidityOneToken(liquidity, 1, 0, (block.timestamp + deadlineSeconds) * 1000);
     }
 
-    function harvest() public onlyRole(TRADER_ROLE) override { }
+    function stakeTokens() public onlyRole(TRADER_ROLE) override {
+        uint256 lpTokens = lpToken.balanceOf(address(this));
+        if (lpTokens == 0) {
+            return;
+        }
+
+        masterChef.deposit(poolId, lpTokens, address(this));
+    }
+
+    function unstakeTokens(uint256 amount) public onlyRole(TRADER_ROLE) override {
+        masterChef.withdraw(poolId, amount, address(this));
+    }
+
+    function harvest() public onlyRole(TRADER_ROLE) override {
+        masterChef.harvest(poolId, address(this));
+    }
 
     function withdraw(uint256 amount) public onlyRole(TRADER_ROLE) override {
         uint256 lpAmount = lpBalance() * amount / totalSupply();
+
+        unstakeTokens(lpAmount);
         removeLiquidity(lpAmount);
+
         _burn(msg.sender, amount);
     }
 
     function withdrawAndCollect(uint256 amount) public onlyRole(TRADER_ROLE) {
         withdraw(amount);
+
         for (uint8 i=0; i<TOKENS_COUNT; i++) {
             collectToken(swap.getToken(i), msg.sender);
         }
