@@ -83,19 +83,20 @@ contract HelperAuroraTrisolarisTriStableSwap is Ownable {
         auroraAmount = aurora.balanceOf(address(this)) - auroraBalanceBefore;
     }
 
-    function harvest(uint256 triBoostingPercent1000, address rewarder) public onlyOwner {
+    function harvest(uint256 triRewardAmount, address rewarder) public onlyOwner {
         bFarm.harvest();
 
         (uint256 triCollectedAmount, uint256 auroraCollectedAmount) = collectTriAndAurora();
 
-        uint256 triRewardAmount = triCollectedAmount * triBoostingPercent1000 / 1000 / 100;
         if (triRewardAmount > 0) {
             tri.transferFrom(rewarder, address(this), triRewardAmount);
         }
 
         uint256 triUsdtAmount = 0;
-        if (triCollectedAmount > 0) {
-            triUsdtAmount = swap(address(tri), address(usdt), triCollectedAmount + triRewardAmount);
+
+        uint triAmount = triRewardAmount + triCollectedAmount;
+        if (triAmount > 0) {
+            triUsdtAmount = swap(address(tri), address(usdt), triAmount);
         }
 
         uint256 auroraUsdtAmount = 0;
