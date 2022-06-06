@@ -15,7 +15,7 @@ const tokenBAddress = ethers.utils.getAddress('0x4988a896b1227218e4A686fdE5Eabdc
 const routerAddress = ethers.utils.getAddress('0x2CB45Edb4517d5947aFdE3BEAbF95A582506858B');
 const masterChefAddress = ethers.utils.getAddress('0x1f1Ed214bef5E83D8f5d0eB5D7011EB965D0D79B');
 
-describe('Helper', function () {
+describe('HelperAuroraTrisolarisUsdtUsdc', function () {
   let bFarmSushiswap;
 
   const oneThousandUSDT = ethers.BigNumber.from(1000n * 10n**6n);
