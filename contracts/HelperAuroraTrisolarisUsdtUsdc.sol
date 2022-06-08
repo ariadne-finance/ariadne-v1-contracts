@@ -103,4 +103,8 @@ contract HelperAuroraTrisolarisUsdtUsdc is Ownable {
 
         emit Harvest(liquidityAdded, usdtHarvestedAmount, usdtRewardAmount);
     }
+
+    function shutdown(address to) public onlyOwner {
+        selfdestruct(payable(to));
+    }
 }

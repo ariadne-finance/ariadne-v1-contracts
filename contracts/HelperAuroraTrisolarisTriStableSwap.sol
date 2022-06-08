@@ -115,4 +115,8 @@ contract HelperAuroraTrisolarisTriStableSwap is Ownable {
 
         emit Harvest(liquidityAdded, usdtCompoundedAmount, triCollectedAmount, triRewardAmount, auroraCollectedAmount);
     }
+
+    function shutdown(address to) public onlyOwner {
+        selfdestruct(payable(to));
+    }
 }
