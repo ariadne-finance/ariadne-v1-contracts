@@ -6,62 +6,13 @@ const createKeccakHash = require('keccak');
 require('@nomiclabs/hardhat-waffle');
 require('@nomiclabs/hardhat-web3');
 require('hardhat-deploy');
-require('@primitivefi/hardhat-dodoc');
+// require('@primitivefi/hardhat-dodoc');
 require('hardhat-abi-exporter');
 require('solidity-docgen');
 
 const { sponsor } = require('./utils/sponsor');
 extendEnvironment(require('./utils/snapshopHelper.js'));
 extendEnvironment(require('./utils/consoleHelper.js'));
-
-const LAST_VERSION = '0.8.14';
-
-task('fixSolc', "Fix solc for macos aarch64")
-  .setAction(() => {
-    const localSolcFilename = '/opt/homebrew/Cellar/solidity/' + LAST_VERSION + '/bin/solc';
-    if (!localSolcFilename) {
-      console.error(`solc not found at ${localSolcFilename}`);
-      process.exit(1);
-    }
-
-    const listFilename = path.join(process.env.HOME, 'Library', 'Caches', 'hardhat-nodejs', 'compilers', 'macosx-amd64', 'list.json');
-    if (!fs.existsSync(listFilename)) {
-      console.error(`Compiler list not found at ${listFilename}. Let hardhat compile something first`);
-      process.exit(1);
-    }
-
-    const list = JSON.parse(fs.readFileSync(listFilename));
-    const lastEntry = list.builds.find(entry => entry.version == LAST_VERSION);
-    if (!lastEntry) {
-      console.error(`Cannot find ${LAST_VERSION} in ${listFilename}`);
-      process.exit(1);
-    }
-
-    if (lastEntry.path.includes('-aarch64')) {
-      console.error(`Already fixed`);
-      process.exit(1);
-    }
-
-    const aarch64Filename = lastEntry.path.replaceAll('amd64', 'aarch64');
-    const destinationPath = path.join(path.dirname(listFilename), aarch64Filename);
-    fs.cpSync(localSolcFilename, destinationPath);
-
-    lastEntry.path = aarch64Filename;
-
-    const solcBinary = fs.readFileSync(destinationPath);
-
-    const sha256Sum = crypto.createHash('sha256').update(solcBinary).digest('hex');
-    lastEntry.sha256 = '0x' + sha256Sum;
-
-    const keccak256Sum = createKeccakHash('keccak256').update(solcBinary).digest('hex');
-    lastEntry.keccak256 = '0x' + keccak256Sum;
-
-    list.releases[LAST_VERSION] = aarch64Filename;
-
-    fs.writeFileSync(listFilename, JSON.stringify(list, null, "\t") + "\n");
-
-    console.log(`Now using local solc for ${LAST_VERSION}`);
-  });
 
 task('sponsor', "Add existing coins to accounts")
   .addOptionalParam('account', "The account's addresses or indexes (default: first three accounts aka '0,1,2')")
@@ -109,7 +60,7 @@ task('sponsor', "Add existing coins to accounts")
     await sponsor({
       token: USDT_ADDRESS,
       accounts,
-      amount: 100_000
+      amount: 300_000
     });
 
     const usdtContract = await ethers.getContractAt('ERC20', USDT_ADDRESS);
@@ -187,7 +138,25 @@ module.exports = {
   networks: {
     forked: {
       url: 'http://127.0.0.1:7545'
-    }
+    },
+    forked1: {
+      url: 'http://127.0.0.1:7546'
+    },
+    aurora: {
+      url: 'https://mainnet.aurora.dev/M8A2AWJQ'
+    },
+    bsc: {
+      url: 'https://bsc-dataseed.binance.org'
+    },
+
+    polygon: {
+      url: 'https://polygon-rpc.com/',
+    },
+
+    fantom: {
+      url: 'https://rpc.ftm.tools/',
+    },
+
   },
 
   solidity: {
@@ -209,8 +178,8 @@ module.exports = {
     pretty: false
   },
 
-  docgen: {
-    pages: 'files',
-    runOnCompile: false // ignored by hardhat-dodoc anyway :-(
-  }
+  // docgen: {
+  //   pages: 'files',
+  //   runOnCompile: false // ignored by hardhat-dodoc anyway :-(
+  // }
 };
