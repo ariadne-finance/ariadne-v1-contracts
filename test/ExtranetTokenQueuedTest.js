@@ -12,11 +12,11 @@ function randomTxHash() {
 
 describe("ExtranetTokenQueued", function () {
   let extranetToken, quoteToken;
-  let myAccount, managerAccount, traderAccount;
+  let myAccount, managerAccount, traderAccount, otherPersonAccount;
   const deadlineInTheFuture = Math.floor(Date.now() / 1000) + 86400;
 
   before(async () => {
-    [ myAccount, managerAccount, traderAccount ] = await hre.ethers.getSigners();
+    [ myAccount, managerAccount, traderAccount, otherPersonAccount ] = await hre.ethers.getSigners();
 
     const QuoteToken = await ethers.getContractFactory('TestToken');
     quoteToken = await QuoteToken.deploy('USDTEST', 6);
@@ -406,4 +406,62 @@ describe("ExtranetTokenQueued", function () {
 
     expect(await quoteToken.balanceOf(myAccount.address)).to.be.eq(5000);
   });
+
+  it("async behavior", async () => {
+    await quoteToken.connect(otherPersonAccount).approve(extranetToken.address, ethers.constants.MaxUint256);
+
+    await quoteToken.mint(1000);
+    await quoteToken.connect(otherPersonAccount).mint(200);
+
+    await extranetToken.connect(traderAccount).mint(1100, randomTxHash());
+
+    await extranetToken.invest(1000);
+    await extranetToken.connect(otherPersonAccount).invest(200);
+
+    let queueInfo = await extranetToken.queueInfo();
+    console.log(queueInfo);
+
+    await extranetToken.connect(traderAccount).runInvestmentQueue(
+      1000,  // quoteTokenAmount
+      1100,  // extranetTokenAmount
+      1100,  // upToExtranetTokenAmount
+      deadlineInTheFuture
+    );
+
+    console.log('extranetToken', await extranetToken.balanceOf(extranetToken.address));
+    console.log('me', await extranetToken.balanceOf(myAccount.address));
+    console.log('other person', await extranetToken.balanceOf(otherPersonAccount.address));
+
+    queueInfo = await extranetToken.queueInfo();
+    console.log(queueInfo);
+
+    await extranetToken.connect(traderAccount).mint(220, randomTxHash());
+
+    await extranetToken.connect(traderAccount).runInvestmentQueue(
+      1000,  // quoteTokenAmount
+      1100,  // extranetTokenAmount
+      1100,  // upToExtranetTokenAmount
+      deadlineInTheFuture
+    );
+
+    console.log('extranetToken', await extranetToken.balanceOf(extranetToken.address));
+    console.log('me', await extranetToken.balanceOf(myAccount.address));
+    console.log('other person', await extranetToken.balanceOf(otherPersonAccount.address));
+
+    queueInfo = await extranetToken.queueInfo();
+    console.log(queueInfo);
+
+    return;
+
+    // indeed gave me tokens
+    expect(await extranetToken.balanceOf(myAccount.address)).to.be.eq(2);
+
+    // quote token stays on contract
+    expect(await quoteToken.balanceOf(extranetToken.address)).to.be.eq(10);
+
+    queueInfo = await extranetToken.queueInfo();
+    expect(queueInfo.investmentAddressListLength).to.be.eq(0);
+    expect(queueInfo.investmentTotalAmount).to.be.eq(0);
+  });
+
 });
