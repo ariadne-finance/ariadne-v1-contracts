@@ -24,6 +24,13 @@ module.exports = hre => {
     });
   };
 
+  hre.setNextBlockTimestamp = async (time) => {
+    await hre.network.provider.request({
+      method: 'evm_setNextBlockTimestamp',
+      params: [ time ]
+    });
+  };
+
   hre.mineOneBlock = async () => {
     await hre.network.provider.request({
       method: 'evm_mine',
