@@ -8,7 +8,7 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
 import "./BFarmTriStableSwap.sol";
 
-contract HelperAuroraTrisolarisTriStableSwap is Ownable {
+contract HelperAuroraTrisolarisTriStableSwap01 is Ownable {
     using SafeERC20 for IERC20;
 
     IERC20 public tri = IERC20(0xFa94348467f64D5A457F75F8bc40495D33c65aBB);
